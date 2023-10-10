@@ -1,13 +1,15 @@
 # Project Name
 TARGET = TTrack
 
-# Sources
-CPP_SOURCES = $(wildcard ./src/*.cpp)
+# Sources and headers
+CPP_SOURCES = ./src/main.cpp
 
 # Library Locations
 LIBDAISY_DIR = ../DaisyExamples/libDaisy/
 DAISYSP_DIR = ../DaisyExamples/DaisySP/
 ETL_DIR = ./lib/etl/include
+
+C_INCLUDES += -I $(ETL_DIR)
 
 # Core location, and generic Makefile.
 SYSTEM_FILES_DIR = $(LIBDAISY_DIR)/core

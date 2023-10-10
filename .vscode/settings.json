@@ -2,5 +2,6 @@
     "C_Cpp.errorSquiggles": "enabled",
     "files.associations": {
         "vector": "cpp"
-    }
+    },
+    "dotnet.defaultSolution": "disable"
 }
