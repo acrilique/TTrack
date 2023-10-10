@@ -3,7 +3,6 @@
 #define __TTRACK_H
 
 #include "OnsetDF.h"
-#include <etl/array.h>
 #include <etl/circular_buffer.h>
 #include <vector>
 
@@ -18,9 +17,9 @@ public:
 
     // TTrack(int hopsize, int framesize);
 
-    void processAudioFrame(double* buffer);
+    void processAudioFrame(float* buffer);
 
-    void processODFSample(double sample);
+    void processODFSample(float sample);
     //======================================
     int getHopSize();
     //======================================
@@ -48,13 +47,18 @@ private:
 
     etl::circular_buffer<float, 512> onsetDF;
 
-    etl::array<float, 512> acf;
-    etl::array<float, 128> combFilterBankOutput;
-    etl::array<float, 128> weightingVector;
-    etl::array<float, 41> delta;
-    etl::array<float, 41> prevDelta;
-    etl::array<float, 41> tempoObservationVector;
-    etl::array<float, 512> onsetDFResampled;
+    std::vector<float> acf;
+    std::vector<float> combFilterBankOutput;
+    std::vector<float> weightingVector;
+    std::vector<float> delta;
+    std::vector<float> prevDelta;
+    std::vector<float> tempoObservationVector;
+    std::vector<float> onsetDFResampled;
+
+    int hopSize;
+    int frameSize;
+
+    float pi;
 
     float tempoTransitionMatrix[41][41];
     float beatPeriod;

@@ -1,4 +1,5 @@
 #include "TTrack.h"
+#include <cmath>
 
 TTrack::TTrack() : odf(EnergyDifference, Hanning)
 {
@@ -7,19 +8,32 @@ TTrack::TTrack() : odf(EnergyDifference, Hanning)
 //================================================
 void TTrack::initialise()
 {
+
+    pi = 3.14159265358979323846264338327950288;
+
+    acf.resize(512);
+    combFilterBankOutput.resize(128);
+    weightingVector.resize(128); 
+    onsetDFResampled.resize(512);
+    delta.resize(41);
+    prevDelta.resize(41);
+    tempoObservationVector.resize(41);
+
+    hopSize = 512;
+
     framesUntilTempoDisplay = 1024;
     beatPeriod = 0.0f;
     estimatedTempo = 0.0f;
     
     float rayleighParameter = 43;
 
-    tightness = 5;
-    alpha = 0.9f;
+    float tightness = 5;
+    float alpha = 0.9f;
     estimatedTempo = 120.0f;
 
     for (int i = 0; i < 128; i++)
     {
-        weightingVector[i] = ((float) n / pow(rayleighParameter, 2)) * exp(-1 * pow((float) -n, 2) / (2 * pow(rayleighParameter, 2)));
+        weightingVector[i] = ((float) i / pow(rayleighParameter, 2)) * exp(-1 * pow((float) -i, 2) / (2 * pow(rayleighParameter, 2)));
     }
 
     for (int i = 0; i < 41; i++)
@@ -37,19 +51,19 @@ void TTrack::initialise()
         {
             x = j + 1;
             t_mu = i + 1;
-            tempoTransitionMatrix[i][j] = (1 / (m_sig * sqrt(2 * pi))) * exp(-1 * pow((x - t_mu), 2) / (2 * pow(m_sig, 2)));
+            tempoTransitionMatrix[i][j] = (1 / (m_sig * sqrt(2 * ))) * exp(-1 * pow((x - t_mu), 2) / (2 * pow(m_sig, 2)));
         }
     }
 
 }
 //================================================
-void TTrack::processAudioFrame(double* buffer)
+void TTrack::processAudioFrame(float* buffer)
 {
-    sample = odf.calculateODFSample(buffer);
+    float sample = odf.calculateODFSample(buffer);
     processODFSample(sample);
 }
 //================================================
-void TTrack::processODFSample(double sample)
+void TTrack::processODFSample(float sample)
 {
     onsetDF.push(sample);
 
@@ -116,7 +130,7 @@ void TTrack::calculateTempo()
     estimatedTempo = 60.0 / ((((float) hopSize) / 44100.0f) * beatPeriod);
 }
 //================================================
-void TTrack::adaptiveThreshold(float &buffer)
+void TTrack::adaptiveThreshold(etl::circular_buffer<float, 512> &buffer)
 {
     N = buffer.size();
 
