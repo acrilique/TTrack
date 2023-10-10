@@ -3,7 +3,8 @@
 #define __TTRACK_H
 
 #include "OnsetDF.h"
-#include "ringbuffer.h"
+#include <etl/array.h>
+#include <etl/circular_buffer.h>
 #include <vector>
 
 class TTrack
@@ -37,20 +38,23 @@ private:
 
     void normaliseVector(float &buffer);
 
+    float calculateMeanOfVector(float* vec, int in, int out);
+
     void calculateBalancedACF(float &odf);   
 
     void calculateCombFilterBankOutput();
 
     OnsetDF odf;
 
-    //RingBuffer<float, 512> onsetDF;
+    etl::circular_buffer<float, 512> onsetDF;
 
-    std::array<float, 512> acf;
-    std::array<float, 128> combFilterBankOutput;
-    std::array<float, 41> delta;
-    std::array<float, 41> prevDelta;
-    std::array<float, 41> tempoObservationVector;
-    std::array<float, 512> onsetDFResampled;
+    etl::array<float, 512> acf;
+    etl::array<float, 128> combFilterBankOutput;
+    etl::array<float, 128> weightingVector;
+    etl::array<float, 41> delta;
+    etl::array<float, 41> prevDelta;
+    etl::array<float, 41> tempoObservationVector;
+    etl::array<float, 512> onsetDFResampled;
 
     float tempoTransitionMatrix[41][41];
     float beatPeriod;
