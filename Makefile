@@ -2,7 +2,7 @@
 TARGET = TTrack
 
 # Sources and headers
-CPP_SOURCES = ./src/main.cpp
+CPP_SOURCES = $(wildcard src/*.cpp)
 
 # Library Locations
 LIBDAISY_DIR = ../DaisyExamples/libDaisy/

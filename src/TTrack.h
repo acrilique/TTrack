@@ -16,6 +16,7 @@ public:
     // TTrack(int hopsize);
 
     // TTrack(int hopsize, int framesize);
+    float getTempo();
 
     void processAudioFrame(float* buffer);
 
@@ -23,6 +24,7 @@ public:
     //======================================
     int getHopSize();
     //======================================
+
 
 private:
     void initialise();
@@ -33,27 +35,27 @@ private:
 
     void calculateTempo();
 
-    void adaptiveThreshold(float &buffer);
+    void adaptiveThreshold(std::vector<float> &buffer);
 
-    void normaliseVector(float &buffer);
+    void normaliseVector(std::array<float, 41> &buffer);
 
-    float calculateMeanOfVector(float* vec, int in, int out);
+    float calculateMeanOfVector(std::vector<float> &buffer, int in, int out);
 
-    void calculateBalancedACF(float &odf);   
+    void calculateBalancedACF(std::vector<float> &buffer);   
 
     void calculateCombFilterBankOutput();
 
-    OnsetDF odf;
-
     etl::circular_buffer<float, 512> onsetDF;
 
-    std::vector<float> acf;
+    std::array<float, 512> acf;
     std::vector<float> combFilterBankOutput;
-    std::vector<float> weightingVector;
-    std::vector<float> delta;
-    std::vector<float> prevDelta;
-    std::vector<float> tempoObservationVector;
+    std::array<float, 128> weightingVector;
+    std::array<float, 41> delta;
+    std::array<float, 41> prevDelta;
+    std::array<float, 41> tempoObservationVector;
     std::vector<float> onsetDFResampled;
+
+    OnsetDF odf;
 
     int hopSize;
     int frameSize;

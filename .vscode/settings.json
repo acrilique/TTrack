@@ -1,5 +1,5 @@
 {
-    "C_Cpp.errorSquiggles": "enabled",
+    "C_Cpp.errorSquiggles": "enabledIfIncludesResolve",
     "files.associations": {
         "vector": "cpp",
         "any": "cpp",

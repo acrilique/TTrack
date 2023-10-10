@@ -1,28 +1,203 @@
-#include "daisy_pod.h"
 #include "daisysp.h"
+#include "daisy_pod.h"
 #include "TTrack.h"
 
-using namespace daisy;
+// Set max delay time to 0.75 of samplerate.
+#define MAX_DELAY static_cast<size_t>(48000 * 2.5f)
+#define REV 0
+#define DEL1 1
+#define DEL2 2
+
+
 using namespace daisysp;
+using namespace daisy;
 
-DaisyPod hw;
+static DaisyPod pod;
+static TTrack ttrack;
 
-void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size)
+static Svf                                       filtl, filtr;
+static ReverbSc                                  rev;
+static DelayLine<float, MAX_DELAY> DSY_SDRAM_BSS dell;
+static DelayLine<float, MAX_DELAY> DSY_SDRAM_BSS delr;
+static Tone                                      tone;
+static Parameter deltime, cutoffParam, deldiscrete;
+int              mode = REV;
+
+float currentDelay, feedback, delayTarget, cutoff, currentTempo, drywet;
+
+//Helper functions
+void Controls();
+
+void GetReverbSample(float &outl, float &outr, float inl, float inr);
+
+void GetDelaySample(float &outl, float &outr, float inl, float inr);
+
+void AudioCallback(AudioHandle::InterleavingInputBuffer  in,
+                   AudioHandle::InterleavingOutputBuffer out,
+                   size_t                                size)
 {
-	hw.ProcessAllControls();
-	for (size_t i = 0; i < size; i++)
-	{
-		out[0][i] = in[0][i];
-		out[1][i] = in[1][i];
-	}
+    float outl, outr, inl, inr;
+	std::vector<float> inavg;
+	inavg.resize(size);
+    Controls();
+	//audio
+    for(size_t i = 0; i < size; i += 2)
+    {
+        inl = in[i];
+        inr = in[i + 1];
+		switch(mode)
+    	{
+            case REV: GetReverbSample(outl, outr, inl, inr); break;
+            case DEL1: GetDelaySample(outl, outr, inl, inr); break;
+			case DEL2: GetDelaySample(outl, outr, inl, inr); break;
+            default: outl = outr = 0;
+        }
+		inavg[i] = (inl + inr) / 2;
+        // left out
+        out[i] = outl;
+
+        // right out
+        out[i + 1] = outr;
+    }
+
+	ttrack.processAudioFrame(inavg.data());
+    currentTempo = ttrack.getTempo();
 }
 
 int main(void)
 {
-	hw.Init();
-	hw.SetAudioBlockSize(4); // number of samples handled per callback
-	hw.SetAudioSampleRate(SaiHandle::Config::SampleRate::SAI_48KHZ);
-	hw.StartAdc();
-	hw.StartAudio(AudioCallback);
-	while(1) {}
+    // initialize pod hardware and oscillator daisysp module
+    float sample_rate;
+
+    //Inits and sample rate
+    pod.Init();
+    pod.SetAudioBlockSize(4);
+    sample_rate = pod.AudioSampleRate();
+    filtl.Init(sample_rate);
+	filtr.Init(sample_rate);
+    rev.Init(sample_rate);
+    dell.Init();
+    delr.Init();
+    tone.Init(sample_rate);
+
+    //fixed hpf before the reverb
+    filtl.SetRes(0.7f);
+    filtl.SetFreq(120.f);
+    filtr.SetRes(0.7f);
+    filtr.SetFreq(120.f);
+
+    //set parameters
+    deldiscrete.Init(pod.knob1, 0, 1, deldiscrete.LINEAR);
+    deltime.Init(pod.knob1, sample_rate * .05, MAX_DELAY, deltime.LOGARITHMIC);
+    cutoffParam.Init(pod.knob1, 500, 20000, cutoffParam.LOGARITHMIC);
+
+    //reverb parameters
+    rev.SetLpFreq(18000.0f);
+    rev.SetFeedback(0.85f);
+
+    //delay parameters
+    currentDelay = delayTarget = sample_rate * 0.75f;
+    dell.SetDelay(currentDelay);
+    delr.SetDelay(currentDelay);
+
+    // start callback
+    pod.StartAdc();
+    pod.StartAudio(AudioCallback);
+
+    while(1) {}
+}
+
+void UpdateKnobs(float &k1, float &k2)
+{
+    k1 = pod.knob1.Process();
+    k2 = pod.knob2.Process();
+
+    switch(mode)
+    {
+        case REV:
+            drywet = k1;
+            rev.SetFeedback(k2);
+            break;
+        case DEL1:
+            delayTarget = deltime.Process();
+            feedback    = k2;
+            break;
+        case DEL2:
+            float value = deltime.Process();
+                if (value < 0.2f)
+                {
+                    delayTarget = 1/4 * currentTempo;
+                }
+                else if (value < 0.4f)
+                {
+                    delayTarget = 1/2 * currentTempo;
+                }
+                else if (value < 0.6f)
+                {
+                    delayTarget = 1 * currentTempo;
+                }
+                else if (value < 0.8f)
+                {
+                    delayTarget = 2 * currentTempo;
+                }
+             
+            feedback = k2;
+            break;
+    }
+}
+
+void UpdateEncoder()
+{
+    mode = mode + pod.encoder.Increment();
+    mode = (mode % 3 + 3) % 3;
+}
+
+void UpdateLeds(float k1, float k2)
+{
+    pod.led1.Set(
+        k1 * (mode == 2), k1 * (mode == 1), k1 * (mode == 0 || mode == 2));
+    pod.led2.Set(
+        k2 * (mode == 2), k2 * (mode == 1), k2 * (mode == 0 || mode == 2));
+
+    pod.UpdateLeds();
+}
+
+void Controls()
+{
+    float k1, k2;
+    delayTarget = feedback = drywet = 0;
+
+    pod.ProcessAnalogControls();
+    pod.ProcessDigitalControls();
+
+    UpdateKnobs(k1, k2);
+
+    UpdateEncoder();
+
+    UpdateLeds(k1, k2);
+}
+
+void GetReverbSample(float &outl, float &outr, float inl, float inr)
+{   
+    //filter before the reverb
+    filtl.Process(inl);
+    filtr.Process(inr);
+    rev.Process(filtl.High(), filtr.High(), &outl, &outr);
+    outl = drywet * outl + (1 - drywet) * inl;
+    outr = drywet * outr + (1 - drywet) * inr;
+}
+
+void GetDelaySample(float &outl, float &outr, float inl, float inr)
+{
+    fonepole(currentDelay, delayTarget, .00007f);
+    delr.SetDelay(currentDelay);
+    dell.SetDelay(currentDelay);
+    outl = dell.Read();
+    outr = delr.Read();
+
+    dell.Write((feedback * outl) + inl);
+    outl = (feedback * outl) + ((1.0f - feedback) * inl);
+
+    delr.Write((feedback * outr) + inr);
+    outr = (feedback * outr) + ((1.0f - feedback) * inr);
 }

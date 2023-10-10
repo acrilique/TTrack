@@ -11,14 +11,6 @@ void TTrack::initialise()
 
     pi = 3.14159265358979323846264338327950288;
 
-    acf.resize(512);
-    combFilterBankOutput.resize(128);
-    weightingVector.resize(128); 
-    onsetDFResampled.resize(512);
-    delta.resize(41);
-    prevDelta.resize(41);
-    tempoObservationVector.resize(41);
-
     hopSize = 512;
 
     framesUntilTempoDisplay = 1024;
@@ -27,8 +19,6 @@ void TTrack::initialise()
     
     float rayleighParameter = 43;
 
-    float tightness = 5;
-    float alpha = 0.9f;
     estimatedTempo = 120.0f;
 
     for (int i = 0; i < 128; i++)
@@ -51,7 +41,7 @@ void TTrack::initialise()
         {
             x = j + 1;
             t_mu = i + 1;
-            tempoTransitionMatrix[i][j] = (1 / (m_sig * sqrt(2 * ))) * exp(-1 * pow((x - t_mu), 2) / (2 * pow(m_sig, 2)));
+            tempoTransitionMatrix[i][j] = (1 / (m_sig * sqrt(2 * pi))) * exp(-1 * pow((x - t_mu), 2) / (2 * pow(m_sig, 2)));
         }
     }
 
@@ -81,8 +71,13 @@ void TTrack::processODFSample(float sample)
 void TTrack::calculateTempo()
 {
     float tempoToLagFactor = 60.0f * 44100.0f / 512.0f;
-    adaptiveThreshold(onsetDF);
-    calculateBalancedACF(onsetDF);
+    for (int i = 0; i < 512; i++)
+    {
+        onsetDFResampled[i] = onsetDF[i];
+    }
+    
+    adaptiveThreshold(onsetDFResampled);
+    calculateBalancedACF(onsetDFResampled);
     calculateCombFilterBankOutput();
     adaptiveThreshold(combFilterBankOutput);
 
@@ -90,7 +85,7 @@ void TTrack::calculateTempo()
     {
         int tempoIndex1 = (int) round (tempoToLagFactor / ((float) ((2*i) + 80)));
         int tempoIndex2 = (int) round (tempoToLagFactor / ((float) ((4*i) + 160)));
-        tempoObservationVector = combFilterBankOutput[tempoIndex1 - 1] + combFilterBankOutput[tempoIndex2 - 1];
+        tempoObservationVector[i] = combFilterBankOutput[tempoIndex1 - 1] + combFilterBankOutput[tempoIndex2 - 1];
     }
 
     for (int j = 0; j < 41; j++)
@@ -130,18 +125,23 @@ void TTrack::calculateTempo()
     estimatedTempo = 60.0 / ((((float) hopSize) / 44100.0f) * beatPeriod);
 }
 //================================================
-void TTrack::adaptiveThreshold(etl::circular_buffer<float, 512> &buffer)
+float TTrack::getTempo()
 {
-    N = buffer.size();
-
+    return estimatedTempo;
+}
+//================================================
+void TTrack::adaptiveThreshold(std::vector<float> &buffer)
+{
+    int N = static_cast<int> (buffer.size());
+    float threshold[N];
     int p_post = 7;
     int p_pre = 8;
 
-    int t = min(N, p_post);
+    int t = std::min(N, p_post);
 
     for (int i = 0; i <= t; i++)
     {
-        int k = min(N, i + p_pre);
+        int k = std::min(N, i + p_pre);
         threshold[i] = calculateMeanOfVector(buffer, 1, k);
     }
 
@@ -152,7 +152,7 @@ void TTrack::adaptiveThreshold(etl::circular_buffer<float, 512> &buffer)
 
     for (int i = N - p_post; i < N; i++)
     {
-        int k = max(i - p_post, 1);
+        int k = std::max(i - p_post, 1);
         threshold[i] = calculateMeanOfVector(buffer, k, N);
     }
 
@@ -168,29 +168,29 @@ void TTrack::adaptiveThreshold(etl::circular_buffer<float, 512> &buffer)
 
 }
 //================================================
-void TTrack::normaliseVector(float &buffer)
+void TTrack::normaliseVector(std::array<float, 41> &buffer)
 {
     float sum = 0.0f;
 
-    for (int i = 0; i < buffer.size(); i++)
+    for (int i = 0; i < 41; i++)
     {
         sum += buffer[i];
     }
 
-    for (int i = 0; i < buffer.size(); i++)
+    for (int i = 0; i < 41; i++)
     {
         buffer[i] /= sum;
     }
 }
 //================================================
-float TTrack::calculateMeanOfVector(float* vec, int in, int out)
+float TTrack::calculateMeanOfVector(std::vector<float> &buffer, int in, int out)
 {
     int length = out - in;
     float sum = 0.0f;
 
     for (int i = in; i < out; i++)
     {
-        sum += vec[i];
+        sum += buffer[i];
     }
 
     if (length > 0)
@@ -203,7 +203,7 @@ float TTrack::calculateMeanOfVector(float* vec, int in, int out)
     }
 }
 //================================================
-void TTrack::calculateBalancedACF(float &odf)
+void TTrack::calculateBalancedACF(std::vector<float> &odf)
 {
     int l, n = 0;
     float sum, tmp;
