@@ -22,14 +22,17 @@ enum WindowType
     Kaiser
 };
 
+const int hopsize = 512;
+const int framesize = 1024;
+
 class OnsetDF
 {
 public:
-    OnsetDF(int type_, int wtype_);
+    OnsetDF();
 
-    void initialise(int type_, int wtype_);
+    void initialise();
 
-    float calculateODFSample(float* buffer);
+    float calculateODFSample(const std::array<float, framesize> &buffer);
 
     void setODFType(int type_);
 private:
@@ -48,14 +51,12 @@ private:
     // void calculateKaiserWindow();
     //================================================
     double pi;
-    int hopsize = 512;
-    int framesize = 1024;
-    int odfType;
-    int windowType;
+    int odfType = 1;
+    int windowType = 1;
     bool initialised;
     float prevEnergySum;
-    std::array<float, 1024> frame;
-    std::array<float, 1024> window;
+    std::array<float, framesize> frame;
+    std::array<float, framesize> window;
 };
 
 #endif

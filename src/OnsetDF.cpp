@@ -2,17 +2,15 @@
 #include "OnsetDF.h"
 
 //=================================
-OnsetDF::OnsetDF(int type_, int wtype_)
+OnsetDF::OnsetDF()
 {
     initialised = false;
     pi = 3.14159265358979323846264338327950288;
-    initialise(type_, wtype_);
+    initialise();
 }
 //=================================
-void OnsetDF::initialise(int type_, int wtype_)
+void OnsetDF::initialise()
 {
-    odfType = type_;
-    windowType = wtype_;
     initialised = true;
 
     switch(windowType)
@@ -28,16 +26,11 @@ void OnsetDF::initialise(int type_, int wtype_)
     
 }
 //=================================
-float OnsetDF::calculateODFSample(float* buffer)
+float OnsetDF::calculateODFSample(const std::array<float, framesize> &buffer)
 {
     if(!initialised)
     {
         return 0.0f;
-    }
-
-    for(int i = 0; i < framesize; i++)
-    {
-        frame[i] = buffer[i];
     }
 
     switch(odfType)

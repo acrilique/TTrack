@@ -4,6 +4,9 @@ TARGET = TTrack
 # Sources and headers
 CPP_SOURCES = $(wildcard src/*.cpp)
 
+# Optimization level
+# OPT = -Os
+
 # Library Locations
 LIBDAISY_DIR = ../DaisyExamples/libDaisy/
 DAISYSP_DIR = ../DaisyExamples/DaisySP/
