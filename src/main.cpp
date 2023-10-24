@@ -20,10 +20,11 @@ static ReverbSc                                  rev;
 static DelayLine<float, MAX_DELAY> DSY_SDRAM_BSS dell;
 static DelayLine<float, MAX_DELAY> DSY_SDRAM_BSS delr;
 static Tone                                      tone;
-static Parameter deltime, cutoffParam, deldiscrete;
+static Parameter deltime, cutoffParam;
 int              mode = REV;
 
 float currentDelay, feedback, delayTarget, cutoff, currentTempo, drywet;
+float discDelay = 1.0f;
 
 //Helper functions
 void Controls();
@@ -60,7 +61,7 @@ void AudioCallback(AudioHandle::InterleavingInputBuffer  in,
         out[i + 1] = outr;
     }
 
-	ttrack.processAudioFrame(inavg.data());
+	ttrack.processAudioFrame(inavg);
     currentTempo = ttrack.getTempo();
 }
 
@@ -80,6 +81,8 @@ int main(void)
     delr.Init();
     tone.Init(sample_rate);
 
+    ttrack.initialise();
+
     //fixed hpf before the reverb
     filtl.SetRes(0.7f);
     filtl.SetFreq(120.f);
@@ -87,7 +90,6 @@ int main(void)
     filtr.SetFreq(120.f);
 
     //set parameters
-    deldiscrete.Init(pod.knob1, 0, 1, deldiscrete.LINEAR);
     deltime.Init(pod.knob1, sample_rate * .05, MAX_DELAY, deltime.LOGARITHMIC);
     cutoffParam.Init(pod.knob1, 500, 20000, cutoffParam.LOGARITHMIC);
 
@@ -107,10 +109,12 @@ int main(void)
     while(1) {}
 }
 
-void UpdateKnobs(float &k1, float &k2)
+void UpdateKnobsNButtons(float &k1, float &k2, bool &b1, bool &b2)
 {
     k1 = pod.knob1.Process();
     k2 = pod.knob2.Process();
+    b1 = pod.button1.RisingEdge();
+    b2 = pod.button2.RisingEdge();
 
     switch(mode)
     {
@@ -123,23 +127,22 @@ void UpdateKnobs(float &k1, float &k2)
             feedback    = k2;
             break;
         case DEL2:
-            float value = deltime.Process();
-                if (value < 0.2f)
+            if (b1 && !b2)
+            {
+                if (discDelay > 0.125f)
                 {
-                    delayTarget = 1/4 * currentTempo;
+                    discDelay /= 2.0f;
+                    delayTarget = discDelay/currentTempo;
                 }
-                else if (value < 0.4f)
+            }
+            else if (b2 && !b1)
+            {
+                if (discDelay < 2.0f)
                 {
-                    delayTarget = 1/2 * currentTempo;
+                    discDelay *= 2.0f;
+                    delayTarget = discDelay/currentTempo;
                 }
-                else if (value < 0.6f)
-                {
-                    delayTarget = 1 * currentTempo;
-                }
-                else if (value < 0.8f)
-                {
-                    delayTarget = 2 * currentTempo;
-                }
+            }
              
             feedback = k2;
             break;
@@ -165,12 +168,13 @@ void UpdateLeds(float k1, float k2)
 void Controls()
 {
     float k1, k2;
+    bool b1, b2;
     delayTarget = feedback = drywet = 0;
 
     pod.ProcessAnalogControls();
     pod.ProcessDigitalControls();
 
-    UpdateKnobs(k1, k2);
+    UpdateKnobsNButtons(k1, k2, b1, b2);
 
     UpdateEncoder();
 

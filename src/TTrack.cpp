@@ -1,17 +1,13 @@
 #include "TTrack.h"
 #include <cmath>
 
-TTrack::TTrack() : odf(EnergyDifference, Hanning)
+TTrack::TTrack() 
 {
-    initialise();
+
 }
 //================================================
 void TTrack::initialise()
 {
-
-    pi = 3.14159265358979323846264338327950288;
-
-    hopSize = 512;
 
     framesUntilTempoDisplay = 1024;
     beatPeriod = 0.0f;
@@ -47,8 +43,9 @@ void TTrack::initialise()
 
 }
 //================================================
-void TTrack::processAudioFrame(float* buffer)
-{
+void TTrack::processAudioFrame(std::vector<float> &buffer)
+{   
+    hopSize = buffer.size() / 2;
     float sample = odf.calculateODFSample(buffer);
     processODFSample(sample);
 }

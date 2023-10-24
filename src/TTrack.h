@@ -5,6 +5,8 @@
 #include "OnsetDF.h"
 #include <etl/circular_buffer.h>
 #include <vector>
+#include <span>
+
 
 class TTrack
 {
@@ -18,16 +20,15 @@ public:
     // TTrack(int hopsize, int framesize);
     float getTempo();
 
-    void processAudioFrame(float* buffer);
+    void processAudioFrame(std::vector<float> &buffer);
 
     void processODFSample(float sample);
     //======================================
     int getHopSize();
     //======================================
-
+    void initialise();
 
 private:
-    void initialise();
 
     void setHopSize(int hopsize);
 
@@ -42,6 +43,7 @@ private:
     float calculateMeanOfVector(std::vector<float> &buffer, int in, int out);
 
     void calculateBalancedACF(std::vector<float> &buffer);   
+
 
     void calculateCombFilterBankOutput();
 
@@ -60,7 +62,7 @@ private:
     int hopSize;
     int frameSize;
 
-    float pi;
+    float pi = 3.14159265358979323846;
 
     float tempoTransitionMatrix[41][41];
     float beatPeriod;

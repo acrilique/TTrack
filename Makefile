@@ -1,6 +1,9 @@
 # Project Name
 TARGET = TTrack
 
+# C++ Standard
+CXXFLAGS += -std=gnu++2a
+
 # Sources and headers
 CPP_SOURCES = $(wildcard src/*.cpp)
 

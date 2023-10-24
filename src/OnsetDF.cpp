@@ -5,7 +5,6 @@
 OnsetDF::OnsetDF()
 {
     initialised = false;
-    pi = 3.14159265358979323846264338327950288;
     initialise();
 }
 //=================================
@@ -16,17 +15,17 @@ void OnsetDF::initialise()
     switch(windowType)
     {
         case Hanning:
-            calculateHanningWindow();
+            // calculateHanningWindow();
             break;
         case Hamming:
-            calculateHammingWindow();
+            // calculateHammingWindow();
             break;
     }
 
     
 }
 //=================================
-float OnsetDF::calculateODFSample(const std::array<float, framesize> &buffer)
+float OnsetDF::calculateODFSample(std::vector<float> &buffer)
 {
     if(!initialised)
     {
@@ -36,10 +35,10 @@ float OnsetDF::calculateODFSample(const std::array<float, framesize> &buffer)
     switch(odfType)
     {
         case EnergyEnvelope:
-            return energyEnvelope();
+            return energyEnvelope(buffer);
             break;
         case EnergyDifference:
-            return energyDifference();
+            return energyDifference(buffer);
             break;
     }
 
@@ -51,22 +50,22 @@ void OnsetDF::setODFType(int type_)
     odfType = type_;
 }
 //=================================
-float OnsetDF::energyEnvelope()
+float OnsetDF::energyEnvelope(std::vector<float> &buffer)
 {
     float sum = 0.0f;
-    for(int i = 0; i < framesize; i++)
+    for(int i = 0; i < buffer.size(); i++)
     {
-        sum += frame[i] * frame[i];
+        sum += buffer[i] * buffer[i];
     }
     return sqrt(sum);
 }
 //=================================
-float OnsetDF::energyDifference()
+float OnsetDF::energyDifference(std::vector<float> &buffer)
 {
     float sum = 0.0f;
-    for(int i = 0; i < framesize; i++)
+    for(int i = 0; i < buffer.size(); i++)
     {
-        sum += frame[i] * frame[i];
+        sum += buffer[i] * buffer[i];
     }
     float sample = sum - prevEnergySum;
     prevEnergySum = sum;
@@ -77,21 +76,21 @@ float OnsetDF::energyDifference()
     return sample;
 }
 //=================================
-void OnsetDF::calculateHammingWindow()
+void OnsetDF::calculateHammingWindow(int size)
 {
-    float N = framesize - 1.0f;
+    float N = size - 1.0f;
     float n_val = 0.0f;
-    for(int i = 0; i < framesize; i++)
+    for(int i = 0; i < size; i++)
     {
         window[i] = 0.54f - 0.46f * cos(2.0f * pi * (n_val / N));
         n_val += 1.0f;
     }
 }
 //=================================
-void OnsetDF::calculateHanningWindow()
+void OnsetDF::calculateHanningWindow(int size)
 {
-    float N = framesize - 1.0f;
-    for(int i = 0; i < framesize; i++)
+    float N = size - 1.0f;
+    for(int i = 0; i < size; i++)
     {
         window[i] = 0.5f * (1.0f - cos(2.0f * pi * (i / N)));
     }
