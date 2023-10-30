@@ -8,8 +8,8 @@ TTrack::TTrack()
 //================================================
 void TTrack::initialise()
 {
-
-    framesUntilTempoDisplay = 1024;
+    onsetDF.resize(512);
+    framesUntilTempoDisplay = 41;
     beatPeriod = 0.0f;
     estimatedTempo = 0.0f;
     
@@ -52,12 +52,12 @@ void TTrack::processAudioFrame(std::vector<float> &buffer)
 //================================================
 void TTrack::processODFSample(float sample)
 {
-    onsetDF.push(sample);
+    onsetDF.addSampleToEnd(sample);
 
     if (framesUntilTempoDisplay == 0)
     {
         calculateTempo();
-        framesUntilTempoDisplay = 1024;
+        framesUntilTempoDisplay = 41;
     }
     else
     {
@@ -116,7 +116,7 @@ void TTrack::calculateTempo()
         prevDelta[j] = delta[j];
     }
 
-    beatPeriod = ((60.0f * 44100.0f) / (((2*maxIndex) + 80)) * (float) hopSize);
+    beatPeriod = round ((60.0 * 44100.0) / (((2 * maxIndex) + 80) * ((float) hopSize)));
 
     if (beatPeriod > 0) 
     estimatedTempo = 60.0 / ((((float) hopSize) / 44100.0f) * beatPeriod);

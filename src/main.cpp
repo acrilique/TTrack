@@ -1,6 +1,7 @@
 #include "daisysp.h"
 #include "daisy_pod.h"
 #include "TTrack.h"
+#include <array>
 
 // Set max delay time to 0.75 of samplerate.
 #define MAX_DELAY static_cast<size_t>(48000 * 2.5f)
@@ -8,14 +9,12 @@
 #define DEL1 1
 #define DEL2 2
 
-
 using namespace daisysp;
 using namespace daisy;
 
 static DaisyPod pod;
 static TTrack ttrack;
 
-static Svf                                       filtl, filtr;
 static ReverbSc                                  rev;
 static DelayLine<float, MAX_DELAY> DSY_SDRAM_BSS dell;
 static DelayLine<float, MAX_DELAY> DSY_SDRAM_BSS delr;
@@ -25,6 +24,12 @@ int              mode = REV;
 
 float currentDelay, feedback, delayTarget, cutoff, currentTempo, drywet;
 float discDelay = 1.0f;
+
+std::array<float, 512> debugvec;
+int debugindex = 0;
+
+std::vector<float> audioAnalysysBuffer;
+size_t bufferIndex = 0;
 
 //Helper functions
 void Controls();
@@ -38,14 +43,15 @@ void AudioCallback(AudioHandle::InterleavingInputBuffer  in,
                    size_t                                size)
 {
     float outl, outr, inl, inr;
-	std::vector<float> inavg;
-	inavg.resize(size);
+	// std::vector<float> inavg;
+	// inavg.resize(size);
     Controls();
 	//audio
     for(size_t i = 0; i < size; i += 2)
     {
         inl = in[i];
         inr = in[i + 1];
+        audioAnalysysBuffer[bufferIndex++] = (inl + inr) / 2.0f;
 		switch(mode)
     	{
             case REV: GetReverbSample(outl, outr, inl, inr); break;
@@ -53,16 +59,25 @@ void AudioCallback(AudioHandle::InterleavingInputBuffer  in,
 			case DEL2: GetDelaySample(outl, outr, inl, inr); break;
             default: outl = outr = 0;
         }
-		inavg[i] = (inl + inr) / 2;
         // left out
         out[i] = outl;
 
         // right out
         out[i + 1] = outr;
+    
+        if (bufferIndex == audioAnalysysBuffer.size())
+        {
+        
+            bufferIndex = 0;
+        	ttrack.processAudioFrame(audioAnalysysBuffer);
+            currentTempo = ttrack.getTempo();
+            debugvec[debugindex] = currentTempo;
+            if (debugindex < 511)
+            debugindex++;
+        }
     }
 
-	ttrack.processAudioFrame(inavg);
-    currentTempo = ttrack.getTempo();
+
 }
 
 int main(void)
@@ -74,20 +89,14 @@ int main(void)
     pod.Init();
     pod.SetAudioBlockSize(4);
     sample_rate = pod.AudioSampleRate();
-    filtl.Init(sample_rate);
-	filtr.Init(sample_rate);
     rev.Init(sample_rate);
     dell.Init();
     delr.Init();
     tone.Init(sample_rate);
 
+    audioAnalysysBuffer.resize(512);
+    std::fill(audioAnalysysBuffer.begin(), audioAnalysysBuffer.end(), 0.0f); //optional
     ttrack.initialise();
-
-    //fixed hpf before the reverb
-    filtl.SetRes(0.7f);
-    filtl.SetFreq(120.f);
-    filtr.SetRes(0.7f);
-    filtr.SetFreq(120.f);
 
     //set parameters
     deltime.Init(pod.knob1, sample_rate * .05, MAX_DELAY, deltime.LOGARITHMIC);
@@ -106,27 +115,11 @@ int main(void)
     pod.StartAdc();
     pod.StartAudio(AudioCallback);
 
-    while(1) {}
-}
-
-void UpdateKnobsNButtons(float &k1, float &k2, bool &b1, bool &b2)
-{
-    k1 = pod.knob1.Process();
-    k2 = pod.knob2.Process();
-    b1 = pod.button1.RisingEdge();
-    b2 = pod.button2.RisingEdge();
-
-    switch(mode)
-    {
-        case REV:
-            drywet = k1;
-            rev.SetFeedback(k2);
-            break;
-        case DEL1:
-            delayTarget = deltime.Process();
-            feedback    = k2;
-            break;
-        case DEL2:
+    while(1) {
+        if (mode == DEL2)
+        {
+            bool b1 = pod.button1.RisingEdge();
+            bool b2 = pod.button2.RisingEdge();
             if (b1 && !b2)
             {
                 if (discDelay > 0.125f)
@@ -143,7 +136,27 @@ void UpdateKnobsNButtons(float &k1, float &k2, bool &b1, bool &b2)
                     delayTarget = discDelay/currentTempo;
                 }
             }
-             
+           
+        }
+    }
+}
+
+void UpdateKnobs(float &k1, float &k2)
+{
+    k1 = pod.knob1.Process();
+    k2 = pod.knob2.Process();
+
+    switch(mode)
+    {
+        case REV:
+            drywet = k1;
+            rev.SetFeedback(k2);
+            break;
+        case DEL1:
+            delayTarget = deltime.Process();
+            feedback    = k2;
+            break;
+        case DEL2:
             feedback = k2;
             break;
     }
@@ -168,13 +181,12 @@ void UpdateLeds(float k1, float k2)
 void Controls()
 {
     float k1, k2;
-    bool b1, b2;
     delayTarget = feedback = drywet = 0;
 
     pod.ProcessAnalogControls();
     pod.ProcessDigitalControls();
 
-    UpdateKnobsNButtons(k1, k2, b1, b2);
+    UpdateKnobs(k1, k2);
 
     UpdateEncoder();
 
@@ -183,10 +195,7 @@ void Controls()
 
 void GetReverbSample(float &outl, float &outr, float inl, float inr)
 {   
-    //filter before the reverb
-    filtl.Process(inl);
-    filtr.Process(inr);
-    rev.Process(filtl.High(), filtr.High(), &outl, &outr);
+    rev.Process(inl, inr, &outl, &outr);
     outl = drywet * outl + (1 - drywet) * inl;
     outr = drywet * outr + (1 - drywet) * inr;
 }

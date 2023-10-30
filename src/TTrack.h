@@ -3,10 +3,9 @@
 #define __TTRACK_H
 
 #include "OnsetDF.h"
-#include <etl/circular_buffer.h>
 #include <vector>
-#include <span>
-
+#include <array>
+#include "CircularBuffer.h"
 
 class TTrack
 {
@@ -47,7 +46,7 @@ private:
 
     void calculateCombFilterBankOutput();
 
-    etl::circular_buffer<float, 512> onsetDF;
+    CircularBuffer onsetDF;
 
     std::array<float, 512> acf;
     std::vector<float> combFilterBankOutput;

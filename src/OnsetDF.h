@@ -53,7 +53,8 @@ private:
     bool initialised;
     float prevEnergySum;
     std::vector<float> frame;
-    std::vector<float> window;
+    std::vector<float> 
+    window;
 };
 
 #endif

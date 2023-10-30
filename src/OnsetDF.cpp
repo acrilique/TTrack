@@ -53,7 +53,7 @@ void OnsetDF::setODFType(int type_)
 float OnsetDF::energyEnvelope(std::vector<float> &buffer)
 {
     float sum = 0.0f;
-    for(int i = 0; i < buffer.size(); i++)
+    for(size_t i = 0; i < buffer.size(); i++)
     {
         sum += buffer[i] * buffer[i];
     }
@@ -63,7 +63,7 @@ float OnsetDF::energyEnvelope(std::vector<float> &buffer)
 float OnsetDF::energyDifference(std::vector<float> &buffer)
 {
     float sum = 0.0f;
-    for(int i = 0; i < buffer.size(); i++)
+    for(size_t i = 0; i < buffer.size(); i++)
     {
         sum += buffer[i] * buffer[i];
     }
