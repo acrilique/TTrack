@@ -43,8 +43,7 @@ private:
 
     void calculateBalancedACF(std::vector<float> &buffer);   
 
-
-    void calculateCombFilterBankOutput();
+    void calculateCombFilterBankOutput(std::vector<float> &buffer);
 
     CircularBuffer onsetDF;
 
@@ -58,7 +57,7 @@ private:
 
     OnsetDF odf;
 
-    int hopSize;
+    int hopSize = 256;
     int frameSize;
 
     float pi = 3.14159265358979323846;

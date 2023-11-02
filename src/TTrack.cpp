@@ -9,6 +9,7 @@ TTrack::TTrack()
 void TTrack::initialise()
 {
     onsetDF.resize(512);
+    combFilterBankOutput.resize(128);
     framesUntilTempoDisplay = 41;
     beatPeriod = 0.0f;
     estimatedTempo = 0.0f;
@@ -45,7 +46,6 @@ void TTrack::initialise()
 //================================================
 void TTrack::processAudioFrame(std::vector<float> &buffer)
 {   
-    hopSize = buffer.size() / 2;
     float sample = odf.calculateODFSample(buffer);
     processODFSample(sample);
 }
@@ -56,8 +56,8 @@ void TTrack::processODFSample(float sample)
 
     if (framesUntilTempoDisplay == 0)
     {
-        calculateTempo();
-        framesUntilTempoDisplay = 41;
+        calculateTempo(); 
+        framesUntilTempoDisplay = 512;
     }
     else
     {
@@ -67,17 +67,21 @@ void TTrack::processODFSample(float sample)
 //================================================
 void TTrack::calculateTempo()
 {
-    float tempoToLagFactor = 60.0f * 44100.0f / 512.0f;
+    float tempoToLagFactor = 60.0f * 44100.0f / 256.0f;
+    
+    // Resample onsetDF
     for (int i = 0; i < 512; i++)
     {
         onsetDFResampled[i] = onsetDF[i];
     }
-    
+
+    // Calculate ACF
     adaptiveThreshold(onsetDFResampled);
     calculateBalancedACF(onsetDFResampled);
-    calculateCombFilterBankOutput();
+    calculateCombFilterBankOutput(onsetDFResampled);
     adaptiveThreshold(combFilterBankOutput);
 
+    // Calculate tempo observation vector
     for (int i = 0; i < 41; i++)
     {
         int tempoIndex1 = (int) round (tempoToLagFactor / ((float) ((2*i) + 80)));
@@ -85,6 +89,7 @@ void TTrack::calculateTempo()
         tempoObservationVector[i] = combFilterBankOutput[tempoIndex1 - 1] + combFilterBankOutput[tempoIndex2 - 1];
     }
 
+    // Update delta
     for (int j = 0; j < 41; j++)
     {
         float maxValue = -1.0f;
@@ -102,6 +107,7 @@ void TTrack::calculateTempo()
 
     normaliseVector(delta);
 
+    // Find max index
     float maxIndex = -1;
     float maxValue = -1;
 
@@ -202,7 +208,8 @@ float TTrack::calculateMeanOfVector(std::vector<float> &buffer, int in, int out)
 //================================================
 void TTrack::calculateBalancedACF(std::vector<float> &odf)
 {
-    int l, n = 0;
+    // std::fill(odf.begin(), odf.end(), 0.0f); //This fixes the artifact, weird
+    int l, n;
     float sum, tmp;
 
     for (l = 0; l < 512; l++)
@@ -215,11 +222,11 @@ void TTrack::calculateBalancedACF(std::vector<float> &odf)
             sum += tmp;
         }
 
-        acf[l] = sum / (512 - l);
+        odf[l] = sum / (512 - l);
     }
 }
 //================================================
-void TTrack::calculateCombFilterBankOutput()
+void TTrack::calculateCombFilterBankOutput(std::vector<float> &buffer)
 {
     int numCombElements = 4;
 
@@ -229,7 +236,7 @@ void TTrack::calculateCombFilterBankOutput()
         {
             for (int b = 1 - a; b <= a - 1; b++)
             {
-                combFilterBankOutput[i - 1] += (acf[(a * i + b) - 1] * weightingVector[i - 1]) / (2 * a - 1);
+                combFilterBankOutput[i - 1] += (buffer[(a * i + b) - 1] * weightingVector[i - 1]) / (2 * a - 1);
             }
         }
     }

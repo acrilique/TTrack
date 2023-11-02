@@ -1,7 +1,7 @@
 #include "daisysp.h"
 #include "daisy_pod.h"
-#include "TTrack.h"
-#include <array>
+#include "TTrack.h" 
+#include <array> 
 
 // Set max delay time to 0.75 of samplerate.
 #define MAX_DELAY static_cast<size_t>(48000 * 2.5f)
@@ -13,7 +13,7 @@ using namespace daisysp;
 using namespace daisy;
 
 static DaisyPod pod;
-static TTrack ttrack;
+static TTrack ttrack;  
 
 static ReverbSc                                  rev;
 static DelayLine<float, MAX_DELAY> DSY_SDRAM_BSS dell;
@@ -22,14 +22,11 @@ static Tone                                      tone;
 static Parameter deltime, cutoffParam;
 int              mode = REV;
 
-float currentDelay, feedback, delayTarget, cutoff, currentTempo, drywet;
-float discDelay = 1.0f;
+float currentDelay, feedback, delayTarget, cutoff, drywet;
+float discDelay, currentTempo;  
 
-std::array<float, 512> debugvec;
-int debugindex = 0;
-
-std::vector<float> audioAnalysysBuffer;
-size_t bufferIndex = 0;
+std::vector<float> audioAnalysysBuffer;  
+size_t bufferIndex = 0; 
 
 //Helper functions
 void Controls();
@@ -43,15 +40,22 @@ void AudioCallback(AudioHandle::InterleavingInputBuffer  in,
                    size_t                                size)
 {
     float outl, outr, inl, inr;
-	// std::vector<float> inavg;
-	// inavg.resize(size);
+
     Controls();
 	//audio
     for(size_t i = 0; i < size; i += 2)
     {
         inl = in[i];
         inr = in[i + 1];
+        
         audioAnalysysBuffer[bufferIndex++] = (inl + inr) / 2.0f;
+        if (bufferIndex == audioAnalysysBuffer.size())
+        {
+        
+            bufferIndex = 0;
+        	ttrack.processAudioFrame(audioAnalysysBuffer);  //============================= PROBLEM=====
+            currentTempo = ttrack.getTempo();  
+        } 
 		switch(mode)
     	{
             case REV: GetReverbSample(outl, outr, inl, inr); break;
@@ -64,17 +68,7 @@ void AudioCallback(AudioHandle::InterleavingInputBuffer  in,
 
         // right out
         out[i + 1] = outr;
-    
-        if (bufferIndex == audioAnalysysBuffer.size())
-        {
-        
-            bufferIndex = 0;
-        	ttrack.processAudioFrame(audioAnalysysBuffer);
-            currentTempo = ttrack.getTempo();
-            debugvec[debugindex] = currentTempo;
-            if (debugindex < 511)
-            debugindex++;
-        }
+     
     }
 
 
@@ -94,6 +88,8 @@ int main(void)
     delr.Init();
     tone.Init(sample_rate);
 
+    discDelay = 1.0f;
+    currentTempo = 120.0f;
     audioAnalysysBuffer.resize(512);
     std::fill(audioAnalysysBuffer.begin(), audioAnalysysBuffer.end(), 0.0f); //optional
     ttrack.initialise();
@@ -116,28 +112,31 @@ int main(void)
     pod.StartAudio(AudioCallback);
 
     while(1) {
-        if (mode == DEL2)
-        {
-            bool b1 = pod.button1.RisingEdge();
-            bool b2 = pod.button2.RisingEdge();
-            if (b1 && !b2)
-            {
-                if (discDelay > 0.125f)
-                {
-                    discDelay /= 2.0f;
-                    delayTarget = discDelay/currentTempo;
-                }
-            }
-            else if (b2 && !b1)
-            {
-                if (discDelay < 2.0f)
-                {
-                    discDelay *= 2.0f;
-                    delayTarget = discDelay/currentTempo;
-                }
-            }
-           
-        }
+
+         
+        if (mode == DEL2) 
+        { 
+            bool b1 = pod.button1.Pressed(); 
+            bool b2 = pod.button2.Pressed(); 
+            if (b1 && !b2) 
+            { 
+                if (discDelay > 0.125f) 
+                { 
+                    discDelay /= 2.0f; 
+                    delayTarget = discDelay/currentTempo; 
+                } 
+            } 
+            else if (b2 && !b1) 
+            { 
+                if (discDelay < 2.0f) 
+                { 
+                    discDelay *= 2.0f; 
+                    delayTarget = discDelay/currentTempo; 
+                } 
+            } 
+            
+        } 
+         
     }
 }
 
@@ -156,9 +155,9 @@ void UpdateKnobs(float &k1, float &k2)
             delayTarget = deltime.Process();
             feedback    = k2;
             break;
-        case DEL2:
-            feedback = k2;
-            break;
+        case DEL2: 
+            feedback = k2; 
+            break; 
     }
 }
 
