@@ -132,7 +132,7 @@ int main(void)
 
         if (mode == DEL2) 
         { 
-            delayTarget = currentDiscDelay * (60.0f / currentTempo) * sample_rate;            
+            delayTarget = discDelayValues[currentDiscDelay] * (60.0f / currentTempo) * sample_rate;            
         } 
          
     }
@@ -213,7 +213,7 @@ void GetDelaySample(float &outl, float &outr, float inl, float inr)
     outl = dell.Read();
     outr = delr.Read();
 
-    dell.Write((feedback * outl) + inl);    std::vector<float> frame;
+    dell.Write((feedback * outl) + inl);
 
     outl = (feedback * outl) + ((1.0f - feedback) * inl);
 
