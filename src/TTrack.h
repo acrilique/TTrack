@@ -10,26 +10,17 @@
 class TTrack
 {
 public:
-    /*Assuming hopsize=512 and framesize=1024*/
     TTrack();
 
-    // /*Assuming framesize=2*hopsize*/
-    // TTrack(int hopsize);
-
-    // TTrack(int hopsize, int framesize);
     float getTempo();
 
     void processAudioFrame(std::vector<float> &buffer);
 
     void processODFSample(float sample);
-    //======================================
-    int getHopSize();
-    //======================================
+
     void initialise();
 
 private:
-
-    void setHopSize(int hopsize);
 
     // void resampleODF();
 
@@ -57,11 +48,9 @@ private:
 
     OnsetDF odf;
 
-    int hopSize = 256;
-    int frameSize;
+    int hopSize;
 
-    float pi = 3.14159265358979323846;
-
+    float pi;
     float tempoTransitionMatrix[41][41];
     float beatPeriod;
     float estimatedTempo;

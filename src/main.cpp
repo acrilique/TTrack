@@ -23,6 +23,7 @@ static Parameter deltime, cutoffParam;
 int              mode = REV;
 
 float currentDelay, feedback, delayTarget, cutoff, drywet;
+
 float discDelay, currentTempo;  
 
 std::vector<float> audioAnalysysBuffer;  
@@ -207,7 +208,8 @@ void GetDelaySample(float &outl, float &outr, float inl, float inr)
     outl = dell.Read();
     outr = delr.Read();
 
-    dell.Write((feedback * outl) + inl);
+    dell.Write((feedback * outl) + inl);    std::vector<float> frame;
+
     outl = (feedback * outl) + ((1.0f - feedback) * inl);
 
     delr.Write((feedback * outr) + inr);

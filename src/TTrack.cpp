@@ -7,17 +7,18 @@ TTrack::TTrack()
 }
 //================================================
 void TTrack::initialise()
-{
+{   
+    // Initialise variables
+    hopSize = 256;
     onsetDF.resize(512);
     combFilterBankOutput.resize(128);
     framesUntilTempoDisplay = 41;
     beatPeriod = 0.0f;
-    estimatedTempo = 0.0f;
-    
-    float rayleighParameter = 43;
-
     estimatedTempo = 120.0f;
-
+    pi = 3.14159265358979323846f;
+    
+    float rayleighParameter = 43.0f;
+    
     for (int i = 0; i < 128; i++)
     {
         weightingVector[i] = ((float) i / pow(rayleighParameter, 2)) * exp(-1 * pow((float) -i, 2) / (2 * pow(rayleighParameter, 2)));
@@ -208,7 +209,6 @@ float TTrack::calculateMeanOfVector(std::vector<float> &buffer, int in, int out)
 //================================================
 void TTrack::calculateBalancedACF(std::vector<float> &odf)
 {
-    // std::fill(odf.begin(), odf.end(), 0.0f); //This fixes the artifact, weird
     int l, n;
     float sum, tmp;
 

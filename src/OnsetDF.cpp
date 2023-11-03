@@ -11,6 +11,9 @@ OnsetDF::OnsetDF()
 void OnsetDF::initialise()
 {
     initialised = true;
+    pi = 3.14159265358979323846;
+    odfType = EnergyDifference;
+    windowType = Hamming;
 
     switch(windowType)
     {

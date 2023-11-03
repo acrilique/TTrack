@@ -32,6 +32,7 @@ public:
     float calculateODFSample(std::vector<float> &buffer);
 
     void setODFType(int type_);
+    
 private:
     float energyEnvelope(std::vector<float> &buffer);
     float energyDifference(std::vector<float> &buffer);
@@ -47,14 +48,12 @@ private:
     // void calculateBlackmanHarrisWindow();
     // void calculateKaiserWindow();
     //================================================
-    double pi = 3.14159265358979323846;
-    int odfType = 1;
-    int windowType = 1;
+    float pi;
+    int odfType;
+    int windowType;
     bool initialised;
     float prevEnergySum;
-    std::vector<float> frame;
-    std::vector<float> 
-    window;
+    std::vector<float> window;
 };
 
 #endif
