@@ -24,8 +24,23 @@ int              mode = REV;
 
 float currentDelay, feedback, delayTarget, cutoff, drywet;
 
-float discDelay, currentTempo;  
+float currentTempo;  
 
+enum discDelay 
+{
+    ONE_EIGHT,
+    ONE_FOURTH,
+    ONE_HALF,
+    THREE_FOURTHS,
+    ONE,
+    TWO,
+    FOUR,
+    EIGHT
+};
+
+const float discDelayValues[] = {0.125f, 0.25f, 0.5f, 0.75f, 1.0f, 2.0f, 4.0f, 8.0f};
+
+int currentDiscDelay;
 std::vector<float> audioAnalysysBuffer;  
 size_t bufferIndex = 0; 
 
@@ -50,13 +65,14 @@ void AudioCallback(AudioHandle::InterleavingInputBuffer  in,
         inr = in[i + 1];
         
         audioAnalysysBuffer[bufferIndex++] = (inl + inr) / 2.0f;
+        
         if (bufferIndex == audioAnalysysBuffer.size())
         {
-        
             bufferIndex = 0;
-        	ttrack.processAudioFrame(audioAnalysysBuffer);  //============================= PROBLEM=====
+        	ttrack.processAudioFrame(audioAnalysysBuffer); 
             currentTempo = ttrack.getTempo();  
         } 
+
 		switch(mode)
     	{
             case REV: GetReverbSample(outl, outr, inl, inr); break;
@@ -89,7 +105,7 @@ int main(void)
     delr.Init();
     tone.Init(sample_rate);
 
-    discDelay = 1.0f;
+    currentDiscDelay = ONE;
     currentTempo = 120.0f;
     audioAnalysysBuffer.resize(512);
     std::fill(audioAnalysysBuffer.begin(), audioAnalysysBuffer.end(), 0.0f); //optional
@@ -114,28 +130,9 @@ int main(void)
 
     while(1) {
 
-         
         if (mode == DEL2) 
         { 
-            bool b1 = pod.button1.Pressed(); 
-            bool b2 = pod.button2.Pressed(); 
-            if (b1 && !b2) 
-            { 
-                if (discDelay > 0.125f) 
-                { 
-                    discDelay /= 2.0f; 
-                    delayTarget = discDelay/currentTempo; 
-                } 
-            } 
-            else if (b2 && !b1) 
-            { 
-                if (discDelay < 2.0f) 
-                { 
-                    discDelay *= 2.0f; 
-                    delayTarget = discDelay/currentTempo; 
-                } 
-            } 
-            
+            delayTarget = currentDiscDelay * (60.0f / currentTempo) * sample_rate;            
         } 
          
     }
@@ -162,10 +159,16 @@ void UpdateKnobs(float &k1, float &k2)
     }
 }
 
-void UpdateEncoder()
+void UpdateButtons()
 {
-    mode = mode + pod.encoder.Increment();
+    mode = mode + pod.button2.RisingEdge() - pod.button1.RisingEdge();
     mode = (mode % 3 + 3) % 3;
+}
+
+void UpdateEncoder()
+{   
+    currentDiscDelay = currentDiscDelay + pod.encoder.Increment();
+    currentDiscDelay = (currentDiscDelay % 8 + 8) % 8;
 }
 
 void UpdateLeds(float k1, float k2)
@@ -189,6 +192,8 @@ void Controls()
     UpdateKnobs(k1, k2);
 
     UpdateEncoder();
+
+    UpdateButtons();
 
     UpdateLeds(k1, k2);
 }

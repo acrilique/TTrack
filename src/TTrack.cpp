@@ -68,7 +68,7 @@ void TTrack::processODFSample(float sample)
 //================================================
 void TTrack::calculateTempo()
 {
-    float tempoToLagFactor = 60.0f * 44100.0f / 256.0f;
+    float tempoToLagFactor = 60.0f * 48000.0f / 256.0f;
     
     // Resample onsetDF
     for (int i = 0; i < 512; i++)
@@ -123,10 +123,10 @@ void TTrack::calculateTempo()
         prevDelta[j] = delta[j];
     }
 
-    beatPeriod = round ((60.0 * 44100.0) / (((2 * maxIndex) + 80) * ((float) hopSize)));
+    beatPeriod = round ((60.0 * 48000.0) / (((2 * maxIndex) + 80) * ((float) hopSize)));
 
     if (beatPeriod > 0) 
-    estimatedTempo = 60.0 / ((((float) hopSize) / 44100.0f) * beatPeriod);
+    estimatedTempo = 60.0 / ((((float) hopSize) / 48000.0f) * beatPeriod);
 }
 //================================================
 float TTrack::getTempo()
