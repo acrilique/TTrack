@@ -13,9 +13,9 @@ CPP_SOURCES = $(wildcard src/*.cpp)
 # Library Locations
 LIBDAISY_DIR = ../DaisyExamples/libDaisy/
 DAISYSP_DIR = ../DaisyExamples/DaisySP/
-# ETL_DIR = ./lib/etl/include
+KISSFFT_DIR = ./lib/kissfft/
 
-# C_INCLUDES += -I $(ETL_DIR)
+C_INCLUDES += -I $(KISSFFT_DIR)
 
 # Core location, and generic Makefile.
 SYSTEM_FILES_DIR = $(LIBDAISY_DIR)/core
