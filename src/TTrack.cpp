@@ -12,7 +12,7 @@ void TTrack::initialise()
     hopSize = 256;
     onsetDF.resize(512);
     combFilterBankOutput.resize(128);
-    framesUntilTempoDisplay = 41;
+    framesUntilTempoDisplay = 512;
     beatPeriod = 0.0f;
     estimatedTempo = 120.0f;
     pi = 3.14159265358979323846f;
@@ -58,7 +58,7 @@ void TTrack::processODFSample(float sample)
     if (framesUntilTempoDisplay == 0)
     {
         calculateTempo(); 
-        framesUntilTempoDisplay = 512;
+        framesUntilTempoDisplay = 384;
     }
     else
     {

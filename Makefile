@@ -15,7 +15,11 @@ LIBDAISY_DIR = ../DaisyExamples/libDaisy/
 DAISYSP_DIR = ../DaisyExamples/DaisySP/
 KISSFFT_DIR = ./lib/kissfft/
 
-C_INCLUDES += -I $(KISSFFT_DIR)
+C_INCLUDES += \
+-I$(KISSFFT_DIR) \
+
+C_SOURCES += \
+$(KISSFFT_DIR)/kiss_fft.c \
 
 # Core location, and generic Makefile.
 SYSTEM_FILES_DIR = $(LIBDAISY_DIR)/core
