@@ -1,5 +1,6 @@
 {
   "configurations": [
+    
     {
       "configFiles": [
         "interface/stlink.cfg",
@@ -19,14 +20,14 @@
       ],
       "preLaunchTask": "build_all_debug",
       "preRestartCommands": [
-        "load",
+        "launch",
         "enable breakpoint",
         "monitor reset"
       ],
       "request": "launch",
-      "runToMain": true,
+      "runToEntryPoint": "main",
       "servertype": "openocd",
-      "showDevDebugOutput": true,
+      "showDevDebugOutput": "raw",
       "svdFile": "${workspaceRoot}/.vscode/STM32H750x.svd",
       "type": "cortex-debug"
     }

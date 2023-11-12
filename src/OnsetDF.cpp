@@ -19,7 +19,7 @@ OnsetDF::~OnsetDF()
 void OnsetDF::initialise()
 {
     pi = 3.14159265358979;
-    odfType = SpectralDifference;
+    odfType = EnergyDifference;
     windowType = Hamming;
     magSpec.resize(512);
     prevMagSpec.resize(512);
